@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 function authHeaders() {
   const token = localStorage.getItem("accessToken");
@@ -6,14 +6,21 @@ function authHeaders() {
 }
 
 export async function api(path, options = {}) {
-  const method = (options.method || "GET").toUpperCase();
-  const includeAuth = options.auth ?? true;
+  const hasToken = Boolean(localStorage.getItem("accessToken"));
+  // Only attach auth header when a token actually exists (or caller forces it)
+  const includeAuth = options.auth !== undefined ? options.auth : hasToken;
   const response = await request(path, options, includeAuth);
 
-  if (response.status === 401 && method === "GET" && localStorage.getItem("accessToken")) {
+  // Token expired — clear it and retry without auth for read endpoints
+  if (response.status === 401 && hasToken) {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
-    return parseResponse(await request(path, options, false));
+    const retry = await request(path, options, false);
+    // If the endpoint truly requires auth, surface a friendly error
+    if (retry.status === 401) {
+      throw new Error("Authentication required");
+    }
+    return parseResponse(retry);
   }
 
   return parseResponse(response);

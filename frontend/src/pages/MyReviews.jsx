@@ -6,15 +6,24 @@ import { api, unwrap } from "../lib/api";
 
 export default function MyReviews() {
   const [reviews, setReviews] = useState([]);
+  const [error, setError] = useState("");
 
   async function load() {
-    const payload = await api("/reviews/?mine=true");
-    setReviews(unwrap(payload));
+    try {
+      const payload = await api("/reviews/?mine=true");
+      setReviews(unwrap(payload));
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   async function remove(id) {
-    await api(`/reviews/${id}/`, { method: "DELETE" });
-    load();
+    try {
+      await api(`/reviews/${id}/`, { method: "DELETE" });
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   useEffect(() => {
@@ -24,6 +33,7 @@ export default function MyReviews() {
   return (
     <section className="content-panel">
       <h1>My Reviews</h1>
+      {error && <p className="error">{error}</p>}
       <div className="review-list">
         {reviews.map((review) => (
           <article className="review-row" key={review.id}>
@@ -38,7 +48,7 @@ export default function MyReviews() {
           </article>
         ))}
       </div>
-      {reviews.length === 0 && (
+      {reviews.length === 0 && !error && (
         <p className="muted"><MessageSquare size={16} /> No reviews yet.</p>
       )}
     </section>
