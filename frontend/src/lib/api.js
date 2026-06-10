@@ -6,15 +6,32 @@ function authHeaders() {
 }
 
 export async function api(path, options = {}) {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
+  const method = (options.method || "GET").toUpperCase();
+  const includeAuth = options.auth ?? true;
+  const response = await request(path, options, includeAuth);
+
+  if (response.status === 401 && method === "GET" && localStorage.getItem("accessToken")) {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    return parseResponse(await request(path, options, false));
+  }
+
+  return parseResponse(response);
+}
+
+async function request(path, options, includeAuth) {
+  const { auth, ...fetchOptions } = options;
+  return fetch(`${API_URL}${path}`, {
+    ...fetchOptions,
     headers: {
       "Content-Type": "application/json",
-      ...authHeaders(),
-      ...(options.headers || {}),
+      ...(includeAuth ? authHeaders() : {}),
+      ...(fetchOptions.headers || {}),
     },
   });
+}
 
+async function parseResponse(response) {
   if (!response.ok) {
     let detail = "Request failed";
     try {
@@ -35,6 +52,7 @@ export const unwrap = (payload) => payload?.results || payload || [];
 export async function login(username, password) {
   const payload = await api("/auth/login/", {
     method: "POST",
+    auth: false,
     body: JSON.stringify({ username, password }),
   });
   localStorage.setItem("accessToken", payload.access);
@@ -45,6 +63,7 @@ export async function login(username, password) {
 export async function register(values) {
   return api("/auth/register/", {
     method: "POST",
+    auth: false,
     body: JSON.stringify(values),
   });
 }

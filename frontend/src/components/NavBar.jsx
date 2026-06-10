@@ -1,5 +1,5 @@
 import React from "react";
-import { BookOpen, Home, LibraryBig, Search, Users } from "lucide-react";
+import { Search } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../lib/auth.jsx";
@@ -7,7 +7,6 @@ import { useAuth } from "../lib/auth.jsx";
 const menus = [
   {
     label: "Home",
-    icon: Home,
     to: "/",
     items: [
       ["Friend Activity", "/"],
@@ -16,7 +15,6 @@ const menus = [
   },
   {
     label: "My Books",
-    icon: LibraryBig,
     to: "/my-books",
     items: [
       ["Want to Read", "/my-books?status=want_to_read"],
@@ -27,7 +25,6 @@ const menus = [
   },
   {
     label: "Browse",
-    icon: BookOpen,
     to: "/browse",
     items: [
       ["Genres", "/browse?mode=genres"],
@@ -37,7 +34,6 @@ const menus = [
   },
   {
     label: "Community",
-    icon: Users,
     to: "/community",
     items: [
       ["Users", "/community"],
@@ -61,14 +57,13 @@ export default function NavBar() {
     <header className="topbar">
       <Link className="brand" to="/">
         <span className="brand-mark">g</span>
-        <span>Goodreads Clone</span>
+        <span>goodreads</span>
       </Link>
 
       <nav className="main-nav">
-        {menus.map(({ label, icon: Icon, to, items }) => (
+        {menus.map(({ label, to, items }) => (
           <div className="nav-menu" key={label}>
             <NavLink to={to} className="nav-link">
-              <Icon size={17} />
               <span>{label}</span>
             </NavLink>
             <div className="dropdown">
@@ -87,7 +82,7 @@ export default function NavBar() {
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search title, author, genre"
+          placeholder="Search books"
         />
       </form>
 

@@ -15,26 +15,37 @@ export default function BookDetails() {
   const [reviews, setReviews] = useState([]);
   const [similar, setSimilar] = useState([]);
   const [commentText, setCommentText] = useState({});
+  const [shelfRecord, setShelfRecord] = useState(null);
   const [error, setError] = useState("");
 
   async function load() {
     setError("");
     try {
-      const [bookPayload, reviewsPayload, similarPayload] = await Promise.all([
+      const [bookPayload, reviewsPayload, similarPayload, shelfPayload] = await Promise.all([
         api(`/books/${id}/`),
         api(`/reviews/?book=${id}`),
         api(`/books/${id}/similar/`),
+        auth.isAuthenticated ? api(`/shelves/?book=${id}`) : Promise.resolve({ results: [] }),
       ]);
       setBook(bookPayload);
       setReviews(unwrap(reviewsPayload));
       setSimilar(unwrap(similarPayload));
+      const currentShelf = unwrap(shelfPayload)[0] || null;
+      setShelfRecord(currentShelf ? { id: currentShelf.id, status: currentShelf.status } : null);
     } catch (err) {
       setError(err.message);
     }
   }
 
   async function shelf(status) {
-    await api("/shelves/", { method: "POST", body: JSON.stringify({ book_id: Number(id), status }) });
+    if (shelfRecord?.status === status) {
+      if (shelfRecord.id) await api(`/shelves/${shelfRecord.id}/`, { method: "DELETE" });
+      setShelfRecord(null);
+      return;
+    }
+
+    const saved = await api("/shelves/", { method: "POST", body: JSON.stringify({ book_id: Number(id), status }) });
+    setShelfRecord({ id: saved.id, status: saved.status });
   }
 
   async function like(reviewId) {
@@ -52,7 +63,7 @@ export default function BookDetails() {
 
   useEffect(() => {
     load();
-  }, [id]);
+  }, [id, auth.isAuthenticated]);
 
   if (error) return <section className="content-panel"><p className="error">{error}</p></section>;
   if (!book) return <section className="content-panel"><p className="muted">Loading book...</p></section>;
@@ -62,9 +73,9 @@ export default function BookDetails() {
       <aside className="book-cover-panel">
         {book.image_url ? <img src={book.image_url} alt="" /> : <div className="cover-fallback large">{book.title?.[0]}</div>}
         <div className="shelf-stack">
-          <button onClick={() => shelf("want_to_read")}><BookMarked size={16} /> Want to Read</button>
-          <button onClick={() => shelf("reading")}>Currently Reading</button>
-          <button onClick={() => shelf("read")}>Read</button>
+          <button className={shelfRecord?.status === "want_to_read" ? "is-active" : ""} onClick={() => shelf("want_to_read")}><BookMarked size={16} /> Want to Read</button>
+          <button className={shelfRecord?.status === "reading" ? "is-active" : ""} onClick={() => shelf("reading")}>Currently Reading</button>
+          <button className={shelfRecord?.status === "read" ? "is-active" : ""} onClick={() => shelf("read")}>Read</button>
         </div>
       </aside>
 

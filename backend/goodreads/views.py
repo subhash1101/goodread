@@ -209,8 +209,11 @@ class ShelfViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Shelf.objects.filter(user=self.request.user).select_related("book")
         shelf_status = self.request.query_params.get("status")
+        book_id = self.request.query_params.get("book")
         if shelf_status:
             queryset = queryset.filter(status=shelf_status)
+        if book_id:
+            queryset = queryset.filter(book_id=book_id)
         return queryset
 
     def perform_create(self, serializer):
