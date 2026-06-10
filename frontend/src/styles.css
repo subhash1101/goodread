@@ -918,6 +918,232 @@ textarea {
   margin: 5px 0 0;
 }
 
+.community-groups-page {
+  max-width: 1110px;
+  margin: 0 auto 40px;
+  display: grid;
+  grid-template-columns: minmax(0, 730px) 350px;
+  gap: 30px;
+  color: #000000;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+}
+
+.community-groups-page a {
+  color: #00635d;
+}
+
+.community-groups-page a:hover {
+  text-decoration: underline;
+}
+
+.community-groups-main h1 {
+  margin: 0 0 14px;
+  color: #333333;
+  font-family: Georgia, serif;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.community-group-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.community-group-search input,
+.community-tags form input {
+  height: 32px;
+  border: 1px solid #d0c8bc;
+  border-radius: 3px;
+  padding: 0 8px;
+  background: #ffffff;
+  color: #333333;
+}
+
+.community-group-search button,
+.community-tags form button {
+  min-height: 32px;
+  border: 1px solid #c8c0b3;
+  border-radius: 3px;
+  background: #f4f1ea;
+  color: #333333;
+  padding: 0 14px;
+}
+
+.community-groups-main section {
+  margin-top: 18px;
+}
+
+.community-groups-main h2,
+.community-tags h2,
+.community-more h2 {
+  margin: 0 0 16px;
+  color: #333333;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.community-group-list {
+  display: grid;
+  gap: 26px;
+}
+
+.community-group-row {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.community-group-thumb {
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 7px;
+  background: #d8d0c4;
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.community-group-thumb span {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  font-family: Georgia, serif;
+  font-size: 34px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.community-group-thumb.jenna {
+  background: linear-gradient(135deg, #d46f65, #f0d19a 48%, #4b6c8b);
+}
+
+.community-group-thumb.library {
+  background: linear-gradient(135deg, #1b1a19, #5f4630 50%, #c19a5b);
+}
+
+.community-group-thumb.booktok {
+  background: linear-gradient(135deg, #111111, #243244 50%, #00d2ff);
+}
+
+.community-group-thumb.shelf {
+  background: radial-gradient(circle at center, #ffffff 0 35%, #e4e2df 36% 100%);
+  color: #ec4f8f;
+}
+
+.community-group-thumb.reese {
+  background: linear-gradient(135deg, #ed5a82, #f4d251 45%, #3567a6);
+}
+
+.community-group-thumb.fox {
+  background: linear-gradient(135deg, #f7e1a4, #c96a1b 55%, #6d2f15);
+}
+
+.community-group-title {
+  display: block;
+  margin-top: 1px;
+  font-family: Georgia, serif;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.community-group-meta {
+  margin: 1px 0 5px;
+  color: #888888;
+  font-size: 12px;
+}
+
+.community-group-row p:not(.community-group-meta) {
+  margin: 0;
+  line-height: 1.25;
+}
+
+.community-empty {
+  color: #777777;
+}
+
+.community-groups-sidebar {
+  padding-top: 0;
+}
+
+.community-ad {
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.community-ad p {
+  margin: 0 0 8px;
+  color: #000000;
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.community-ad div {
+  display: grid;
+  height: 250px;
+  align-content: end;
+  justify-items: start;
+  padding: 18px;
+  border: 1px solid #d4d4d4;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.88) 0 42%, rgba(240,220,174,0.96) 43% 100%),
+    linear-gradient(45deg, #856852, #d9c6a8);
+  color: #3d4a51;
+  text-align: left;
+}
+
+.community-ad span {
+  justify-self: end;
+  color: #26338c;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.community-ad strong {
+  width: min-content;
+  color: #4e5656;
+  font-size: 31px;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.community-tags,
+.community-more {
+  padding-top: 20px;
+  border-top: 1px solid #dddddd;
+}
+
+.community-tags > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 34px;
+  margin-bottom: 18px;
+}
+
+.community-tags form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.community-more {
+  margin-top: 28px;
+}
+
+.community-more p {
+  margin: 0 0 16px;
+}
+
+.community-more > a {
+  display: inline-block;
+}
+
 .goodreads-home {
   max-width: 960px;
   margin: 22px auto 40px;
@@ -1491,6 +1717,11 @@ textarea {
     max-width: 760px;
   }
 
+  .community-groups-page {
+    grid-template-columns: 1fr;
+    max-width: 760px;
+  }
+
   .mybooks-sidebar {
     padding-top: 0;
   }
@@ -1603,5 +1834,19 @@ textarea {
 
   .mybooks-footer > div {
     grid-template-columns: 1fr;
+  }
+
+  .community-groups-page {
+    width: calc(100% - 20px);
+    margin-top: 12px;
+  }
+
+  .community-group-search,
+  .community-tags form {
+    grid-template-columns: 1fr;
+  }
+
+  .community-ad div {
+    height: 180px;
   }
 }
