@@ -10,6 +10,7 @@ import Community from "./pages/Community.jsx";
 import Discussions from "./pages/Discussions.jsx";
 import Friends from "./pages/Friends.jsx";
 import Home from "./pages/Home.jsx";
+import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
 import Messages from "./pages/Messages.jsx";
 import MyBooks from "./pages/MyBooks.jsx";
@@ -24,13 +25,18 @@ function Protected({ children }) {
   return auth.isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
+function RootPage() {
+  const auth = useAuth();
+  return auth.isAuthenticated ? <Home /> : <Landing />;
+}
+
 export default function App() {
   return (
     <>
       <NavBar />
       <main className="page-shell">
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<RootPage />} />
           <Route path="/recommendations" element={<Protected><Recommendations /></Protected>} />
           <Route path="/browse" element={<Browse />} />
           <Route path="/books/:id" element={<BookDetails />} />

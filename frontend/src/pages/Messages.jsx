@@ -33,7 +33,6 @@ export default function Messages() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
 
-  const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
   // ── Load mutual-follow friends ──────────────────────────────────────────
@@ -61,10 +60,6 @@ export default function Messages() {
       .finally(() => setLoadingThread(false));
   }, [selected]);
 
-  // ── Scroll to bottom when thread changes ────────────────────────────────
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [thread]);
 
   // ── Send message ─────────────────────────────────────────────────────────
   async function handleSend(e) {
@@ -227,7 +222,6 @@ export default function Messages() {
               </div>
             ))}
 
-            <div ref={bottomRef} />
           </div>
 
           {/* Input bar */}

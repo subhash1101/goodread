@@ -500,6 +500,7 @@ def list_books(
     search: str = "",
     genre: str = "",
     page: int = Query(1, ge=1),
+    page_size: int = Query(PAGE_SIZE, ge=1, le=200),
     conn=Depends(get_db),
 ):
     where: list[str] = []
@@ -514,7 +515,7 @@ def list_books(
     count = conn.execute(f"SELECT COUNT(*) FROM goodreads_book {clause}", args).fetchone()[0]
     rows = conn.execute(
         f"SELECT * FROM goodreads_book {clause} ORDER BY title LIMIT ? OFFSET ?",
-        [*args, PAGE_SIZE, (page - 1) * PAGE_SIZE],
+        [*args, page_size, (page - 1) * page_size],
     ).fetchall()
     return paginate([serialize_book(r) for r in rows], count=count, page=page)
 

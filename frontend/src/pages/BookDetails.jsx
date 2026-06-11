@@ -185,6 +185,14 @@ export default function BookDetails() {
                   Read
                 </button>
               </div>
+              <a
+                className="bd-amazon-btn"
+                href={`https://www.amazon.com/s?k=${encodeURIComponent(book.title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Buy on Amazon
+              </a>
             </div>
           )}
         </div>

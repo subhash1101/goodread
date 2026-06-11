@@ -212,6 +212,7 @@ export default function Browse() {
     const qs = new URLSearchParams();
     if (q) qs.set("search", q);
     if (g) qs.set("genre",  g);
+    qs.set("page_size", "50");
     try {
       const payload = await api(`/books/?${qs.toString()}`);
       setBooks(unwrap(payload));
@@ -317,17 +318,21 @@ export default function Browse() {
             </div>
           )}
 
-          {!loading && books.length > 0 && (
-            <>
-              <p className="brw-result-meta">
-                {books.length} books{activeGenre ? ` in ${activeGenre}` : ""}
-                {query ? ` matching "${query}"` : ""}
-              </p>
-              <div className="brw-grid">
-                {books.map((book) => <BrowseCard book={book} key={book.id} />)}
-              </div>
-            </>
-          )}
+          {!loading && books.length > 0 && (() => {
+            const NO_COVER = "https://s.gr-assets.com/assets/nophoto/book/111x148-bcc042a9c91a29c1d680899eff700a03.png";
+            const visible = books.filter((b) => b.image_url !== NO_COVER).slice(0, 35);
+            return (
+              <>
+                <p className="brw-result-meta">
+                  {visible.length} books{activeGenre ? ` in ${activeGenre}` : ""}
+                  {query ? ` matching "${query}"` : ""}
+                </p>
+                <div className="brw-grid">
+                  {visible.map((book) => <BrowseCard book={book} key={book.id} />)}
+                </div>
+              </>
+            );
+          })()}
 
           {!loading && books.length === 0 && (query || activeGenre) && !error && (
             <div className="brw-empty-state">
