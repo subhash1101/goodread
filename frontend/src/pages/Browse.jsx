@@ -1,249 +1,349 @@
 import React from "react";
-import { Filter, Search } from "lucide-react";
+import { Search, Star } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import BookCard from "../components/BookCard.jsx";
 import { api, unwrap } from "../lib/api";
-import NewReleases from "./NewReleases.jsx";
 
-const genreSeeds = ["Fiction", "Fantasy", "Romance", "Mystery", "Young Adult", "Classics", "Science Fiction", "Historical"];
-
-const PALETTES = [
-  { bg: "#1e3a5f", text: "#e8f0fe" },
-  { bg: "#8b1a1a", text: "#fce8e8" },
-  { bg: "#2d5016", text: "#d8f3dc" },
-  { bg: "#4a1942", text: "#f3e5f5" },
-  { bg: "#7b4f1a", text: "#fef3cd" },
-  { bg: "#1a4e6b", text: "#e3f2fd" },
-  { bg: "#5c4033", text: "#efebe9" },
-  { bg: "#1b5e20", text: "#f1f8e9" },
-  { bg: "#0d47a1", text: "#e3f2fd" },
-  { bg: "#880e4f", text: "#fce4ec" },
+const GENRES = [
+  "Fiction", "Fantasy", "Romance", "Mystery",
+  "Young Adult", "Classics", "Science Fiction", "Historical",
 ];
 
-function palette(id) {
-  return PALETTES[id % PALETTES.length];
+const RELEASE_GENRES = [
+  { label: "fiction",             query: "Fiction" },
+  { label: "historical fiction",  query: "Historical Fiction" },
+  { label: "mystery & thriller",  query: "Mystery" },
+  { label: "romance",             query: "Romance" },
+  { label: "fantasy",             query: "Fantasy" },
+  { label: "science fiction",     query: "Science Fiction" },
+];
+
+function fmtCount(n) {
+  const num = Number(n || 0);
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}m`;
+  if (num >= 1_000)     return `${(num / 1_000).toFixed(1)}k`;
+  return String(num);
 }
 
-function BookThumb({ book, small = false }) {
-  const { bg, text } = palette(book.id);
-  const base = {
-    display: "block",
-    width: "100%",
-    aspectRatio: "2/3",
-    borderRadius: "4px",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
-    objectFit: "cover",
-  };
-  const fallback = {
-    ...base,
-    backgroundColor: bg,
-    color: text,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: small ? "3px" : "6px",
-    textAlign: "center",
-    fontSize: small ? "8px" : "10px",
-    fontWeight: "bold",
-    lineHeight: 1.3,
-    gap: "2px",
-  };
+// ── Vertical book card ────────────────────────────────────────────────────
+function BrowseCard({ book }) {
   return (
-    <Link to={`/books/${book.id}`} title={`${book.title} by ${book.author}`} style={{ display: "block" }}>
-      {book.image_url ? (
-        <img src={book.image_url} alt={book.title} style={base} />
-      ) : (
-        <div style={fallback}>
-          <span>{book.title}</span>
-          {!small && <span style={{ fontWeight: "normal", opacity: 0.75, fontSize: "9px" }}>{book.author}</span>}
-        </div>
-      )}
+    <Link to={`/books/${book.id}`} className="brw-card">
+      <div className="brw-card-cover">
+        {book.image_url
+          ? <img src={book.image_url} alt={book.title} />
+          : <div className="brw-card-fallback">{book.title?.[0]}</div>}
+      </div>
+      <div className="brw-card-info">
+        <span className="brw-card-title">{book.title}</span>
+        <span className="brw-card-author">{book.author}</span>
+        <span className="brw-card-rating">
+          <Star size={11} fill="currentColor" />
+          {Number(book.avg_rating || 0).toFixed(2)}
+          <span className="brw-card-count">· {fmtCount(book.ratings_count)}</span>
+        </span>
+      </div>
     </Link>
   );
 }
 
-function groupByGenre(books) {
-  const map = new Map();
-  for (const book of books) {
-    const genre = (book.genres && book.genres[0]) || "Other";
-    if (!map.has(genre)) map.set(genre, []);
-    if (map.get(genre).length < 5) map.get(genre).push(book);
-  }
-  return [...map.entries()];
+// ── Small thumbnail (genre rows) ──────────────────────────────────────────
+function Thumb({ book }) {
+  return (
+    <Link to={`/books/${book.id}`} className="brw-thumb" title={book.title}>
+      {book.image_url
+        ? <img src={book.image_url} alt={book.title} />
+        : <div className="brw-thumb-fallback">{book.title?.[0]}</div>}
+    </Link>
+  );
 }
 
-function PopularBooksView({ books, error }) {
-  const groups = groupByGenre(books);
-  const sidebarBooks = [...books].sort((a, b) => b.avg_rating - a.avg_rating).slice(0, 15);
+// ── Skeleton placeholder ──────────────────────────────────────────────────
+function Skeleton() {
+  return <div className="brw-skeleton" />;
+}
 
+// ── Genre row: label + 5 book covers ─────────────────────────────────────
+function GenreRow({ label, books, loading }) {
   return (
-    <div
-      className="p-6 max-w-7xl mx-auto"
-      style={{ fontFamily: "'Georgia', serif", backgroundColor: "#fcfbf7", color: "#333333" }}
-    >
-      <header className="mb-6">
-        <h1 className="text-2xl font-serif text-amber-950 font-bold">Popular Books</h1>
-        <p className="text-sm text-gray-500 mt-1" style={{ fontFamily: "'Arial', sans-serif" }}>
-          Most rated books across all genres
-        </p>
-      </header>
-
-      {error && (
-        <p style={{ color: "#c0392b", marginBottom: "1rem", fontSize: "0.9rem" }}>{error}</p>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <main className="lg:col-span-3">
-          {books.length === 0 && !error ? (
-            <div className="space-y-8">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="grid grid-cols-6 items-center gap-4">
-                  <div className="col-span-1" />
-                  <div className="col-span-5 grid grid-cols-5 gap-2">
-                    {Array.from({ length: 5 }).map((_, j) => (
-                      <div
-                        key={j}
-                        style={{ width: "100%", aspectRatio: "2/3", borderRadius: "4px", backgroundColor: "#e5e0d5" }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {groups.map(([genre, genreBooks]) => (
-                <div key={genre} className="grid grid-cols-6 items-center gap-4">
-                  <div className="col-span-1 text-right italic text-gray-600 font-serif pr-4 text-sm">
-                    {genre.toLowerCase()}
-                  </div>
-                  <div className="col-span-5 grid grid-cols-5 gap-2">
-                    {genreBooks.map((book) => (
-                      <BookThumb key={book.id} book={book} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </main>
-
-        <aside
-          className="lg:col-span-1 lg:border-l lg:border-gray-200 lg:pl-6"
-          style={{ fontFamily: "'Arial', sans-serif" }}
-        >
-          <div>
-            <h3 className="text-xs font-bold tracking-wider uppercase text-amber-900 border-b border-gray-300 pb-1 mb-3">
-              Top Rated
-            </h3>
-            {sidebarBooks.length === 0 ? (
-              <div className="grid grid-cols-3 gap-2">
-                {Array.from({ length: 9 }).map((_, i) => (
-                  <div
-                    key={i}
-                    style={{ width: "100%", aspectRatio: "2/3", borderRadius: "4px", backgroundColor: "#e5e0d5" }}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {sidebarBooks.map((book) => (
-                  <BookThumb key={book.id} book={book} small />
-                ))}
-              </div>
-            )}
-            <div className="mt-4 text-center">
-              <Link
-                to="/browse?mode=new"
-                className="text-xs text-cyan-700 hover:underline font-semibold"
-              >
-                new releases »
-              </Link>
-            </div>
-          </div>
-        </aside>
+    <div className="brw-genre-row">
+      <span className="brw-genre-label">{label}</span>
+      <div className="brw-genre-books">
+        {loading
+          ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} />)
+          : books.map((b) => <Thumb key={b.id} book={b} />)}
       </div>
     </div>
   );
 }
 
+// ── Sidebar (top-rated or popular new) ───────────────────────────────────
+function Sidebar({ books, heading, linkTo, linkLabel }) {
+  return (
+    <aside className="brw-sidebar">
+      <h3 className="brw-sidebar-heading">{heading}</h3>
+      <div className="brw-sidebar-grid">
+        {books.length === 0
+          ? Array.from({ length: 9 }).map((_, i) => <Skeleton key={i} />)
+          : books.slice(0, 12).map((b) => (
+            <Link key={b.id} to={`/books/${b.id}`} className="brw-sidebar-thumb" title={b.title}>
+              {b.image_url
+                ? <img src={b.image_url} alt={b.title} />
+                : <div className="brw-thumb-fallback">{b.title?.[0]}</div>}
+            </Link>
+          ))}
+      </div>
+      <Link to={linkTo} className="brw-sidebar-more">{linkLabel} »</Link>
+    </aside>
+  );
+}
+
+// ── Popular Books view ────────────────────────────────────────────────────
+function PopularView() {
+  const [groups, setGroups]   = useState([]);
+  const [topRated, setTopRated] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api("/books/popular/")
+      .then((payload) => {
+        const books = unwrap(payload);
+        const map = new Map();
+        for (const b of books) {
+          const g = (b.genres && b.genres[0]) || "Other";
+          if (!map.has(g)) map.set(g, []);
+          if (map.get(g).length < 5) map.get(g).push(b);
+        }
+        setGroups([...map.entries()]);
+        setTopRated([...books].sort((a, b) => b.avg_rating - a.avg_rating).slice(0, 12));
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="brw-split">
+      <main className="brw-split-main">
+        {loading
+          ? [1,2,3,4,5].map((i) => <GenreRow key={i} label="…" books={[]} loading />)
+          : groups.map(([genre, books]) => (
+            <GenreRow key={genre} label={genre.toLowerCase()} books={books} loading={false} />
+          ))}
+      </main>
+      <Sidebar
+        books={topRated}
+        heading="Top Rated"
+        linkTo="/browse?mode=new"
+        linkLabel="New Releases"
+      />
+    </div>
+  );
+}
+
+// ── New Releases view ─────────────────────────────────────────────────────
+function NewReleasesView() {
+  const [rows, setRows]     = useState(RELEASE_GENRES.map((g) => ({ ...g, books: [], loading: true })));
+  const [popular, setPopular] = useState([]);
+  const month = new Date().toLocaleString("default", { month: "long", year: "numeric" });
+
+  useEffect(() => {
+    RELEASE_GENRES.forEach((row, i) => {
+      api(`/books/?genre=${encodeURIComponent(row.query)}`)
+        .then((payload) => {
+          const sorted = unwrap(payload)
+            .sort((a, b) => (b.original_publication_year || 0) - (a.original_publication_year || 0))
+            .slice(0, 5);
+          setRows((prev) => {
+            const next = [...prev];
+            next[i] = { ...next[i], books: sorted, loading: false };
+            return next;
+          });
+          setPopular((prev) =>
+            [...prev, ...sorted].sort((a, b) => b.ratings_count - a.ratings_count).slice(0, 12)
+          );
+        })
+        .catch(() =>
+          setRows((prev) => {
+            const next = [...prev];
+            next[i] = { ...next[i], loading: false };
+            return next;
+          })
+        );
+    });
+  }, []);
+
+  return (
+    <div className="brw-split">
+      <main className="brw-split-main">
+        <p className="brw-sub-label">New releases · {month}</p>
+        {rows.map((row) => (
+          <GenreRow key={row.query} label={row.label} books={row.books} loading={row.loading} />
+        ))}
+      </main>
+      <Sidebar
+        books={popular}
+        heading="Popular New Releases"
+        linkTo="/browse?mode=popular"
+        linkLabel="All Popular"
+      />
+    </div>
+  );
+}
+
+// ── Main Browse page ──────────────────────────────────────────────────────
+const MODES = [
+  { key: "search",  label: "All Books" },
+  { key: "popular", label: "Popular" },
+  { key: "new",     label: "New Releases" },
+];
+
 export default function Browse() {
   const location = useLocation();
-  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
-  const [books, setBooks] = useState([]);
-  const [query, setQuery] = useState(params.get("search") || "");
-  const [genre, setGenre] = useState(params.get("genre") || "");
-  const [error, setError] = useState("");
+  const params   = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const mode     = params.get("mode") || "search";
 
-  async function load(nextQuery = query, nextGenre = genre) {
-    setError("");
-    const search = new URLSearchParams();
-    if (nextQuery) search.set("search", nextQuery);
-    if (nextGenre) search.set("genre", nextGenre);
+  const [books,       setBooks]       = useState([]);
+  const [query,       setQuery]       = useState(params.get("search") || "");
+  const [activeGenre, setActiveGenre] = useState(params.get("genre") || "");
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState("");
+
+  async function load(q = query, g = activeGenre) {
+    setError(""); setLoading(true);
+    const qs = new URLSearchParams();
+    if (q) qs.set("search", q);
+    if (g) qs.set("genre",  g);
     try {
-      const payload = params.get("mode") === "popular" && !nextQuery && !nextGenre
-        ? await api("/books/popular/")
-        : await api(`/books/?${search.toString()}`);
+      const payload = await api(`/books/?${qs.toString()}`);
       setBooks(unwrap(payload));
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (params.get("mode") === "new") return;
-    const nextQuery = params.get("search") || "";
-    const nextGenre = params.get("genre") || "";
-    setQuery(nextQuery);
-    setGenre(nextGenre);
-    load(nextQuery, nextGenre);
+    if (mode !== "search") return;
+    const q = params.get("search") || "";
+    const g = params.get("genre")  || "";
+    setQuery(q); setActiveGenre(g);
+    load(q, g);
   }, [location.search]);
 
-  function submit(event) {
-    event.preventDefault();
-    load();
+  function submit(e) { e.preventDefault(); load(); }
+
+  function pickGenre(name) {
+    const next = activeGenre === name ? "" : name;
+    setActiveGenre(next);
+    load(query, next);
   }
 
-  if (params.get("mode") === "new") {
-    return <NewReleases />;
-  }
-
-  if (params.get("mode") === "popular") {
-    return <PopularBooksView books={books} error={error} />;
-  }
+  function clearAll() { setQuery(""); setActiveGenre(""); load("", ""); }
 
   return (
-    <section className="content-panel">
-      <div className="section-head">
+    <div className="brw-page">
+
+      {/* ── Page header ──────────────────────────── */}
+      <div className="brw-page-header">
         <div>
-          <h1>Browse</h1>
-          <p className="muted">Search the imported catalog by title, author, or genre.</p>
+          <h1 className="brw-page-title">Browse Books</h1>
+          <p className="brw-page-sub">Discover your next great read</p>
         </div>
       </div>
-      <form className="filters" onSubmit={submit}>
-        <label>
-          <Search size={16} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Title or author" />
-        </label>
-        <label>
-          <Filter size={16} />
-          <input value={genre} onChange={(event) => setGenre(event.target.value)} placeholder="Genre" />
-        </label>
-        <button className="primary-button">Search</button>
-      </form>
-      <div className="chip-row">
-        {genreSeeds.map((name) => (
-          <button key={name} onClick={() => { setGenre(name); load(query, name); }}>
-            {name}
+
+      {/* ── Mode tabs ────────────────────────────── */}
+      <div className="brw-nav-bar">
+        <div className="brw-mode-tabs">
+          {MODES.map(({ key, label }) => (
+            <Link
+              key={key}
+              to={key === "search" ? "/browse" : `/browse?mode=${key}`}
+              className={`brw-mode-tab${mode === key ? " active" : ""}`}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+
+        {mode === "search" && (
+          <form className="brw-searchbar" onSubmit={submit}>
+            <Search size={15} className="brw-searchbar-icon" />
+            <input
+              className="brw-searchbar-input"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Title, author…"
+            />
+            {query && (
+              <button type="button" className="brw-clear" onClick={clearAll} title="Clear">✕</button>
+            )}
+            <button type="submit" className="brw-search-btn">Search</button>
+          </form>
+        )}
+      </div>
+
+      {/* ── Genre chips (search mode) ─────────────── */}
+      {mode === "search" && (
+        <div className="brw-chips">
+          <button className={`brw-chip${!activeGenre ? " active" : ""}`} onClick={() => pickGenre("")}>
+            All
           </button>
-        ))}
-      </div>
-      {error && <p className="error">{error}</p>}
-      <div className="book-grid">
-        {books.map((book) => <BookCard book={book} key={book.id} />)}
-      </div>
-    </section>
+          {GENRES.map((name) => (
+            <button
+              key={name}
+              className={`brw-chip${activeGenre === name ? " active" : ""}`}
+              onClick={() => pickGenre(name)}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Error ───────────────────────────────── */}
+      {error && <p className="brw-error">{error}</p>}
+
+      {/* ── Routed content ─────────────────────── */}
+      {mode === "popular" && <PopularView />}
+      {mode === "new"     && <NewReleasesView />}
+
+      {mode === "search" && (
+        <>
+          {loading && (
+            <div className="brw-grid">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="brw-card-skeleton" />
+              ))}
+            </div>
+          )}
+
+          {!loading && books.length > 0 && (
+            <>
+              <p className="brw-result-meta">
+                {books.length} books{activeGenre ? ` in ${activeGenre}` : ""}
+                {query ? ` matching "${query}"` : ""}
+              </p>
+              <div className="brw-grid">
+                {books.map((book) => <BrowseCard book={book} key={book.id} />)}
+              </div>
+            </>
+          )}
+
+          {!loading && books.length === 0 && (query || activeGenre) && !error && (
+            <div className="brw-empty-state">
+              <p className="brw-empty-msg">No books match your search.</p>
+              <button className="primary-button" onClick={clearAll}>Clear filters</button>
+            </div>
+          )}
+
+          {!loading && !query && !activeGenre && books.length === 0 && !error && (
+            <div className="brw-empty-state">
+              <p className="brw-empty-msg">Search for a title, author, or pick a genre above.</p>
+            </div>
+          )}
+        </>
+      )}
+
+    </div>
   );
 }

@@ -792,6 +792,7 @@ def delete_shelf(shelf_id: int, user=Depends(current_user), conn=Depends(get_db)
     )
     if shelf["user_id"] != user["id"]:
         raise HTTPException(status_code=403, detail="Forbidden")
+    conn.execute("DELETE FROM goodreads_feedevent WHERE shelf_id = ?", (shelf_id,))
     conn.execute("DELETE FROM goodreads_shelf WHERE id = ?", (shelf_id,))
     conn.commit()
     return Response(status_code=204)

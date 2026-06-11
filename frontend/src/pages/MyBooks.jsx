@@ -92,8 +92,15 @@ export default function MyBooks() {
   }
 
   async function removeShelf(shelfId) {
-    await api(`/shelves/${shelfId}/`, { method: "DELETE" });
-    load();
+    // Optimistically remove the row so the UI responds immediately
+    setItems((prev) => prev.filter((item) => item.id !== shelfId));
+    try {
+      await api(`/shelves/${shelfId}/`, { method: "DELETE" });
+      load();
+    } catch (err) {
+      setError(err.message);
+      load(); // Revert to real server state on failure
+    }
   }
 
   return (
