@@ -74,7 +74,7 @@ Use `--limit 1000` for a quick smoke import.
 7. Start the backend:
 
 ```bash
-python manage.py runserver 0.0.0.0:8000
+uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 8. Start the frontend:

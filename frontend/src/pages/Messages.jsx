@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, unwrap } from "../lib/api";
 import { useAuth } from "../lib/auth.jsx";
 
 function timeAgo(dateStr) {
+  if (!dateStr) return "";
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
@@ -11,6 +12,10 @@ function timeAgo(dateStr) {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function initial(name) {
+  return (name || "?")[0].toUpperCase();
 }
 
 export default function Messages() {
@@ -25,223 +30,232 @@ export default function Messages() {
   const [loadingThread, setLoadingThread] = useState(false);
   const [threadError, setThreadError] = useState("");
 
-  // Load mutual follows (friends) on mount
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const bottomRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // ── Load mutual-follow friends ──────────────────────────────────────────
   useEffect(() => {
     if (!userId) {
       if (!isAuthenticated) setLoadingFriends(false);
       return;
     }
     setFriendsError("");
-    Promise.all([
-      api(`/users/${userId}/followers/`),
-      api(`/users/${userId}/following/`),
-    ])
-      .then(([frsPayload, fngPayload]) => {
-        const followerList = unwrap(frsPayload);
-        const followingList = unwrap(fngPayload);
-        const followingIdSet = new Set(followingList.map((u) => u.id));
-        // Mutual follows only
-        const mutual = followerList.filter((u) => followingIdSet.has(u.id));
-        setFriends(mutual);
-      })
+    api("/messages/friends/")
+      .then((data) => setFriends(Array.isArray(data) ? data : unwrap(data)))
       .catch((err) => setFriendsError(err.message))
       .finally(() => setLoadingFriends(false));
   }, [userId, isAuthenticated]);
 
-  // Load conversation when a friend is selected
+  // ── Load conversation when friend is selected ───────────────────────────
   useEffect(() => {
-    if (!selected || !userId) return;
+    if (!selected) return;
     setLoadingThread(true);
     setThreadError("");
     setThread([]);
-
-    Promise.all([
-      api("/reviews/?mine=true"),
-      api(`/reviews/?user=${selected.id}`),
-    ])
-      .then(([myPayload, theirPayload]) => {
-        const myReviews = unwrap(myPayload);
-        const theirReviews = unwrap(theirPayload);
-        const msgs = [];
-
-        // Comments the friend left on my reviews
-        for (const review of myReviews) {
-          for (const comment of review.comments ?? []) {
-            if (comment.user.id === selected.id) {
-              msgs.push({
-                id: `recv-${comment.id}`,
-                fromMe: false,
-                text: comment.text,
-                context: `on your review of "${review.book.title}"`,
-                created_at: comment.created_at,
-              });
-            }
-          }
-        }
-
-        // Comments I left on the friend's reviews
-        for (const review of theirReviews) {
-          for (const comment of review.comments ?? []) {
-            if (comment.user.id === userId) {
-              msgs.push({
-                id: `sent-${comment.id}`,
-                fromMe: true,
-                text: comment.text,
-                context: `on ${selected.username}'s review of "${review.book.title}"`,
-                created_at: comment.created_at,
-              });
-            }
-          }
-        }
-
-        msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-        setThread(msgs);
-      })
+    api(`/messages/${selected.id}/`)
+      .then((data) => setThread(unwrap(data)))
       .catch((err) => setThreadError(err.message))
       .finally(() => setLoadingThread(false));
-  }, [selected, userId]);
+  }, [selected]);
+
+  // ── Scroll to bottom when thread changes ────────────────────────────────
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [thread]);
+
+  // ── Send message ─────────────────────────────────────────────────────────
+  async function handleSend(e) {
+    e.preventDefault();
+    const text = draft.trim();
+    if (!text || !selected || sending) return;
+    setSending(true);
+    try {
+      const msg = await api(`/messages/${selected.id}/`, {
+        method: "POST",
+        body: JSON.stringify({ text }),
+      });
+      setThread((prev) => [...prev, msg]);
+      setDraft("");
+      setFriends((prev) =>
+        prev.map((f) =>
+          f.id === selected.id
+            ? { ...f, last_message: text, last_message_at: msg.created_at }
+            : f
+        )
+      );
+      inputRef.current?.focus();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function selectFriend(friend) {
+    setSelected(friend);
+    setFriends((prev) =>
+      prev.map((f) => (f.id === friend.id ? { ...f, unread_count: 0 } : f))
+    );
+  }
 
   return (
-    <section className="content-panel">
-      <h1>Messages</h1>
+    <section className="content-panel" style={{ padding: 0, overflow: "hidden" }}>
+      <div className="chat-layout">
 
-      {friendsError && <p className="error">{friendsError}</p>}
+        {/* ── Sidebar ──────────────────────────────────────────────────── */}
+        <div className="chat-sidebar">
+          <div className="chat-sidebar-header">Conversations</div>
 
-      {loadingFriends && <p className="muted">Loading friends…</p>}
-
-      {!loadingFriends && friends.length === 0 && !friendsError && (
-        <p className="muted">
-          No friends yet. You can only message people who follow you back.{" "}
-          <Link to="/add-friends" style={{ color: "#6b5e4e", fontWeight: 600 }}>
-            Find friends »
-          </Link>
-        </p>
-      )}
-
-      {!loadingFriends && friends.length > 0 && (
-        <div style={{ display: "flex", gap: "1.5rem", alignItems: "flex-start" }}>
-
-          {/* Friends sidebar */}
-          <div
-            style={{
-              minWidth: "180px",
-              maxWidth: "200px",
-              borderRight: "1px solid #e0d8c8",
-              paddingRight: "1rem",
-            }}
-          >
-            <p
-              style={{
-                fontSize: "0.78rem",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                color: "#888",
-                marginBottom: "0.75rem",
-              }}
-            >
-              Friends
-            </p>
-            {friends.map((friend) => (
-              <button
-                key={friend.id}
-                onClick={() => setSelected(friend)}
-                style={{
-                  display: "block",
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "0.55rem 0.7rem",
-                  borderRadius: "5px",
-                  border: "none",
-                  background: selected?.id === friend.id ? "#f0ebe0" : "transparent",
-                  fontWeight: selected?.id === friend.id ? 700 : "normal",
-                  color: "#333",
-                  cursor: "pointer",
-                  marginBottom: "0.25rem",
-                  fontSize: "0.9rem",
-                  outline: selected?.id === friend.id ? "2px solid #b9a070" : "none",
-                }}
-              >
-                {friend.username}
-              </button>
-            ))}
-          </div>
-
-          {/* Conversation panel */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {!selected && (
-              <p className="muted" style={{ marginTop: "1rem" }}>
-                Select a friend to view your conversation.
+          <div className="chat-friend-list">
+            {loadingFriends && (
+              <p style={{ padding: "1rem", color: "var(--muted)", fontSize: "0.85rem" }}>
+                Loading…
               </p>
             )}
 
-            {selected && (
-              <>
-                <p
-                  style={{
-                    fontWeight: 700,
-                    marginBottom: "1.25rem",
-                    fontSize: "1rem",
-                    borderBottom: "1px solid #e0d8c8",
-                    paddingBottom: "0.6rem",
-                  }}
-                >
-                  {selected.username}
-                </p>
-
-                {threadError && <p className="error">{threadError}</p>}
-                {loadingThread && <p className="muted">Loading conversation…</p>}
-
-                {!loadingThread && thread.length === 0 && !threadError && (
-                  <p className="muted">
-                    No messages yet. Comment on each other's reviews to start a conversation.
-                  </p>
-                )}
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
-                  {thread.map((msg) => (
-                    <div
-                      key={msg.id}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: msg.fromMe ? "flex-end" : "flex-start",
-                      }}
-                    >
-                      <div
-                        style={{
-                          maxWidth: "72%",
-                          background: msg.fromMe ? "#4a7c6f" : "#f0ebe0",
-                          color: msg.fromMe ? "#fff" : "#333",
-                          borderRadius: msg.fromMe
-                            ? "14px 14px 3px 14px"
-                            : "14px 14px 14px 3px",
-                          padding: "0.55rem 0.9rem",
-                          fontSize: "0.9rem",
-                          lineHeight: 1.45,
-                        }}
-                      >
-                        {msg.text}
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          color: "#aaa",
-                          marginTop: "3px",
-                          paddingLeft: msg.fromMe ? 0 : "4px",
-                          paddingRight: msg.fromMe ? "4px" : 0,
-                        }}
-                      >
-                        {msg.context} · {timeAgo(msg.created_at)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </>
+            {friendsError && (
+              <p style={{ padding: "1rem", color: "var(--red)", fontSize: "0.85rem" }}>
+                {friendsError}
+              </p>
             )}
+
+            {!loadingFriends && friends.length === 0 && !friendsError && (
+              <div className="chat-sidebar-empty">
+                <p>No conversations yet.</p>
+                <p>You can chat with people who follow you back.</p>
+                <Link to="/add-friends">Find friends »</Link>
+              </div>
+            )}
+
+            {friends.map((friend) => {
+              const active = selected?.id === friend.id;
+              return (
+                <button
+                  key={friend.id}
+                  className={[
+                    "chat-friend-btn",
+                    active ? "active" : "",
+                    friend.unread_count > 0 ? "has-unread" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onClick={() => selectFriend(friend)}
+                >
+                  <div className="chat-friend-avatar">{initial(friend.username)}</div>
+                  <div className="chat-friend-info">
+                    <div className="chat-friend-name-row">
+                      <span className="chat-friend-name">{friend.username}</span>
+                      {friend.unread_count > 0 && (
+                        <span className="chat-unread-badge">{friend.unread_count}</span>
+                      )}
+                    </div>
+                    {friend.last_message && (
+                      <div className="chat-friend-preview">{friend.last_message}</div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
-      )}
+
+        {/* ── Chat panel ───────────────────────────────────────────────── */}
+        <div className="chat-panel">
+
+          {/* Header */}
+          <div className="chat-panel-header">
+            {selected ? (
+              <>
+                <div className="chat-panel-header-avatar">{initial(selected.username)}</div>
+                <div>
+                  <div className="chat-panel-header-name">{selected.username}</div>
+                  <div className="chat-panel-header-hint">
+                    {selected.followers_count} follower{selected.followers_count !== 1 ? "s" : ""}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="chat-panel-header-name" style={{ color: "var(--muted)" }}>
+                Select a conversation
+              </div>
+            )}
+          </div>
+
+          {/* Messages area */}
+          <div className="chat-messages">
+            {!selected && (
+              <div className="chat-empty-state">
+                <div className="chat-empty-state-icon">💬</div>
+                <p>Choose a friend to start chatting.</p>
+              </div>
+            )}
+
+            {selected && loadingThread && (
+              <div className="chat-empty-state">
+                <p style={{ color: "var(--muted)" }}>Loading…</p>
+              </div>
+            )}
+
+            {selected && threadError && (
+              <p style={{ color: "var(--red)", fontSize: "0.85rem" }}>{threadError}</p>
+            )}
+
+            {selected && !loadingThread && thread.length === 0 && !threadError && (
+              <div className="chat-empty-state">
+                <div className="chat-empty-state-icon">👋</div>
+                <p>Say hello to {selected.username}!</p>
+              </div>
+            )}
+
+            {thread.map((msg) => (
+              <div
+                key={msg.id}
+                className={`chat-msg-row ${msg.from_me ? "from-me" : "from-friend"}`}
+              >
+                {msg.from_me ? (
+                  <div className="chat-bubble from-me">{msg.text}</div>
+                ) : (
+                  <div className="chat-msg-with-avatar">
+                    <div className="chat-msg-mini-avatar">{initial(selected.username)}</div>
+                    <div className="chat-bubble from-friend">{msg.text}</div>
+                  </div>
+                )}
+                <span className="chat-timestamp">{timeAgo(msg.created_at)}</span>
+              </div>
+            ))}
+
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input bar */}
+          {selected && (
+            <form className="chat-input-bar" onSubmit={handleSend}>
+              <input
+                ref={inputRef}
+                className="chat-input"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder={`Message ${selected.username}…`}
+                disabled={sending}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) handleSend(e);
+                }}
+              />
+              <button
+                type="submit"
+                className="chat-send-btn"
+                disabled={sending || !draft.trim()}
+              >
+                {sending ? "…" : "Send"}
+              </button>
+            </form>
+          )}
+        </div>
+
+      </div>
     </section>
   );
 }

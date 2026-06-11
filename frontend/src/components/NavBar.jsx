@@ -8,10 +8,7 @@ const menus = [
   {
     label: "Home",
     to: "/",
-    items: [
-      ["Friend Activity", "/"],
-      ["Recommendations", "/recommendations"],
-    ],
+    items: [],
   },
   {
     label: "My Books",
@@ -34,7 +31,6 @@ const menus = [
     label: "Community",
     to: "/community",
     items: [
-      ["Users", "/community"],
       ["Groups", "/community?tab=groups"],
       ["Discussions", "/discussions"],
     ],
@@ -71,13 +67,15 @@ export default function NavBar() {
             <NavLink to={to} className="nav-link">
               <span>{label}</span>
             </NavLink>
-            <div className="dropdown">
-              {items.map(([item, href]) => (
-                <Link to={href} key={item}>
-                  {item}
-                </Link>
-              ))}
-            </div>
+            {items.length > 0 && (
+              <div className="dropdown">
+                {items.map(([item, href]) => (
+                  <Link to={href} key={item}>
+                    {item}
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </nav>
@@ -136,11 +134,8 @@ export default function NavBar() {
                 <div className="profile-dropdown" role="menu">
                   <div className="profile-dropdown-name">{auth.username || "Reader"}</div>
                   <Link to="/profile" onClick={() => setProfileOpen(false)}>Profile</Link>
-                  <Link to="/friends" onClick={() => setProfileOpen(false)}>Friends</Link>
-                  <Link to="/community" onClick={() => setProfileOpen(false)}>Groups</Link>
-                  <Link to="/discussions" onClick={() => setProfileOpen(false)}>Discussions</Link>
-                  <Link to="/my-reviews" onClick={() => setProfileOpen(false)}>My Reviews</Link>
-                  <Link to="/account-settings" onClick={() => setProfileOpen(false)}>Account settings</Link>
+                  <Link to="/my-reviews" onClick={() => setProfileOpen(false)}>Comments</Link>
+                  <Link to="/login" onClick={() => setProfileOpen(false)}>Account settings</Link>
                   <button type="button" onClick={signOut}>Sign out</button>
                 </div>
               )}

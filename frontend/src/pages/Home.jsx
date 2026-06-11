@@ -75,21 +75,28 @@ export default function Home() {
         <aside className="goodreads-column">
           <section className="gr-card">
             <h2 className="gr-card-title">Currently Reading</h2>
-            <div className="gr-profile-box">
-              <div className="gr-avatar" aria-hidden="true" />
-              <form onSubmit={submitSearch}>
-                <p>What are you reading?</p>
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search books"
-                />
-              </form>
-            </div>
+            {shelves.reading.length > 0 ? (
+              <div>
+                <MiniBook book={shelves.reading[0].book} />
+                <Link className="gr-small-link" to="/my-books?status=reading">
+                  View all currently reading
+                </Link>
+              </div>
+            ) : (
+              <div className="gr-profile-box">
+                <div className="gr-avatar" aria-hidden="true" />
+                <form onSubmit={submitSearch}>
+                  <p>What are you reading?</p>
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search books"
+                  />
+                </form>
+              </div>
+            )}
             <div className="gr-tiny-links">
               <Link to="/recommendations">Recommendations</Link>
-              <span>·</span>
-              <Link to="/my-books?status=reading">General update</Link>
             </div>
           </section>
 
@@ -249,41 +256,54 @@ function MiniBook({ book }) {
   );
 }
 
+const SHELF_BUTTONS = [
+  { status: "want_to_read", label: "Want to Read" }
+];
+
 function FeaturedUpdate({ book, onShelved }) {
   const auth = useAuth();
   const [shelfRecord, setShelfRecord] = useState(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     async function loadShelf() {
-      if (!auth.isAuthenticated) {
-        setShelfRecord(null);
-        return;
+      if (!auth.isAuthenticated) { setShelfRecord(null); return; }
+      try {
+        const payload = await api(`/shelves/?book=${book.id}`);
+        const current = unwrap(payload)[0] || null;
+        if (!cancelled) setShelfRecord(current ? { id: current.id, status: current.status } : null);
+      } catch {
+        // leave shelfRecord as null
       }
-      const payload = await api(`/shelves/?book=${book.id}`);
-      const current = unwrap(payload)[0] || null;
-      if (!cancelled) setShelfRecord(current ? { id: current.id, status: current.status } : null);
     }
-    loadShelf().catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    loadShelf();
+    return () => { cancelled = true; };
   }, [auth.isAuthenticated, book.id]);
 
-  async function addShelf(status) {
-    if (shelfRecord?.status === status) {
-      if (shelfRecord.id) await api(`/shelves/${shelfRecord.id}/`, { method: "DELETE" });
-      setShelfRecord(null);
+  async function toggleShelf(status) {
+    if (!auth.isAuthenticated) return;
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (shelfRecord?.status === status) {
+        // same button → remove from shelf
+        await api(`/shelves/${shelfRecord.id}/`, { method: "DELETE" });
+        setShelfRecord(null);
+      } else {
+        // different / no shelf → create or move
+        const saved = await api("/shelves/", {
+          method: "POST",
+          body: JSON.stringify({ book_id: book.id, status }),
+        });
+        setShelfRecord({ id: saved.id, status: saved.status });
+      }
       onShelved?.();
-      return;
+    } catch (err) {
+      console.error("Shelf error:", err.message);
+    } finally {
+      setBusy(false);
     }
-
-    const saved = await api("/shelves/", {
-      method: "POST",
-      body: JSON.stringify({ book_id: book.id, status }),
-    });
-    setShelfRecord({ id: saved.id, status: saved.status });
-    onShelved?.();
   }
 
   return (
@@ -296,25 +316,21 @@ function FeaturedUpdate({ book, onShelved }) {
           {book.title}
         </Link>
         <p>by {book.author}</p>
-        <div className="gr-update-actions">
-          <button
-            className={shelfRecord?.status === "want_to_read" ? "is-active" : ""}
-            type="button"
-            onClick={() => addShelf("want_to_read")}
-          >
-            Want to Read
-          </button>
-          <button
-            className={shelfRecord?.status === "reading" ? "is-active" : ""}
-            type="button"
-            aria-label="More shelf options"
-            onClick={() => addShelf("reading")}
-          >
-            ▾
-          </button>
-          <span>Rate it:</span>
-          <div aria-label={`${book.avg_rating} average rating`}>☆☆☆☆☆</div>
-        </div>
+        {auth.isAuthenticated && (
+          <div className="gr-update-actions">
+            {SHELF_BUTTONS.map(({ status, label }) => (
+              <button
+                key={status}
+                type="button"
+                className={shelfRecord?.status === status ? "is-active" : ""}
+                disabled={busy}
+                onClick={() => toggleShelf(status)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         <p className="gr-description">
           {(book.description || `${book.title} is a popular book in the Goodreads catalog.`).slice(0, 220)}
           {(book.description || "").length > 220 ? "... " : " "}

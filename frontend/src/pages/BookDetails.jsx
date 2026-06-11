@@ -16,6 +16,7 @@ export default function BookDetails() {
   const [similar, setSimilar] = useState([]);
   const [commentText, setCommentText] = useState({});
   const [shelfRecord, setShelfRecord] = useState(null);
+  const [shelfBusy, setShelfBusy] = useState(false);
   const [error, setError] = useState("");
 
   async function load() {
@@ -38,14 +39,26 @@ export default function BookDetails() {
   }
 
   async function shelf(status) {
-    if (shelfRecord?.status === status) {
-      if (shelfRecord.id) await api(`/shelves/${shelfRecord.id}/`, { method: "DELETE" });
-      setShelfRecord(null);
-      return;
+    if (shelfBusy) return;
+    setShelfBusy(true);
+    try {
+      if (shelfRecord?.status === status) {
+        // same button pressed → remove from shelf
+        await api(`/shelves/${shelfRecord.id}/`, { method: "DELETE" });
+        setShelfRecord(null);
+      } else {
+        // new status or no shelf → create/move
+        const saved = await api("/shelves/", {
+          method: "POST",
+          body: JSON.stringify({ book_id: Number(id), status }),
+        });
+        setShelfRecord({ id: saved.id, status: saved.status });
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setShelfBusy(false);
     }
-
-    const saved = await api("/shelves/", { method: "POST", body: JSON.stringify({ book_id: Number(id), status }) });
-    setShelfRecord({ id: saved.id, status: saved.status });
   }
 
   async function like(reviewId) {
@@ -73,9 +86,27 @@ export default function BookDetails() {
       <aside className="book-cover-panel">
         {book.image_url ? <img src={book.image_url} alt="" /> : <div className="cover-fallback large">{book.title?.[0]}</div>}
         <div className="shelf-stack">
-          <button className={shelfRecord?.status === "want_to_read" ? "is-active" : ""} onClick={() => shelf("want_to_read")}><BookMarked size={16} /> Want to Read</button>
-          <button className={shelfRecord?.status === "reading" ? "is-active" : ""} onClick={() => shelf("reading")}>Currently Reading</button>
-          <button className={shelfRecord?.status === "read" ? "is-active" : ""} onClick={() => shelf("read")}>Read</button>
+          <button
+            className={shelfRecord?.status === "want_to_read" ? "is-active" : ""}
+            disabled={shelfBusy}
+            onClick={() => shelf("want_to_read")}
+          >
+            <BookMarked size={16} /> Want to Read
+          </button>
+          <button
+            className={shelfRecord?.status === "reading" ? "is-active" : ""}
+            disabled={shelfBusy}
+            onClick={() => shelf("reading")}
+          >
+            Currently Reading
+          </button>
+          <button
+            className={shelfRecord?.status === "read" ? "is-active" : ""}
+            disabled={shelfBusy}
+            onClick={() => shelf("read")}
+          >
+            Read
+          </button>
         </div>
       </aside>
 

@@ -120,26 +120,11 @@ export default function MyBooks() {
           </section>
 
           <section>
-            <h2>Your reading activity</h2>
-            <Link to="/my-reviews">Review Drafts</Link>
-            <Link to="/my-reviews">Kindle Notes & Highlights</Link>
-            <Link to="/recommendations">Reading Challenge</Link>
-            <Link to="/my-books?status=read">Year in Books</Link>
-            <Link to="/recommendations">Reading stats</Link>
-          </section>
-
-          <section>
             <h2>Add books</h2>
             <Link to="/recommendations">Recommendations</Link>
             <Link to="/browse">Explore</Link>
           </section>
 
-          <section>
-            <h2>Tools</h2>
-            <Link to="/my-books">Find duplicates</Link>
-            <Link to="/my-books">Widgets</Link>
-            <Link to="/my-books">Import and export</Link>
-          </section>
         </aside>
 
         <main className="mybooks-main">
@@ -151,9 +136,7 @@ export default function MyBooks() {
             </form>
             <div className="mybooks-tools">
               <button type="button">Batch Edit</button>
-              <button type="button">Settings</button>
               <button type="button">Stats</button>
-              <button type="button">Print</button>
               <span />
               <button className="active" type="button" aria-label="List view"><List size={17} /></button>
               <button type="button" aria-label="Grid view"><Grid2X2 size={15} /></button>
@@ -214,7 +197,6 @@ export default function MyBooks() {
               <input type="radio" checked={descending} onChange={() => setDescending(true)} />
               desc.
             </label>
-            <span className="mybooks-rss">RSS</span>
           </div>
         </main>
       </div>
@@ -243,16 +225,13 @@ function ShelfRow({ item, onRemove }) {
       <td><span className="mybooks-stars">☆☆☆☆☆</span></td>
       <td>
         <Link to={`/my-books?status=${item.status}`}>{shelfCopy[item.status] || item.status}</Link>
-        <button type="button">[edit]</button>
       </td>
       <td><Link to={`/books/${book.id}`}>Write a review</Link></td>
       <td>
         <span className="muted">not set</span>
-        <button type="button">[edit]</button>
       </td>
       <td>{formatDate(item.created_at)}</td>
       <td className="mybooks-row-actions">
-        <button type="button">edit view »</button>
         <button type="button" aria-label={`Remove ${book.title}`} onClick={() => onRemove(item.id)}>
           <X size={16} />
         </button>

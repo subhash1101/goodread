@@ -122,13 +122,7 @@ export default function Community() {
       </main>
 
       <aside className="community-groups-sidebar">
-        <div className="community-ad">
-          <p>ADVERTISEMENT</p>
-          <div>
-            <span>storite</span>
-            <strong>Premium Laptop Backpack</strong>
-          </div>
-        </div>
+
 
         <section className="community-tags">
           <h2>Browse groups by tag</h2>
