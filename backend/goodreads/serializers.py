@@ -47,6 +47,7 @@ class BookListSerializer(serializers.ModelSerializer):
             "image_url",
             "avg_rating",
             "ratings_count",
+            "original_publication_year",
         )
 
 

@@ -44,7 +44,16 @@ export default function Profile() {
   }, []);
 
   const username = auth.username || "Reader";
-  const displayName = titleCase(username);
+  const savedFirstName = localStorage.getItem("profile_firstName");
+  const savedLastName  = localStorage.getItem("profile_lastName");
+  const savedPhoto     = localStorage.getItem("profile_photo");
+  const savedCountry   = localStorage.getItem("profile_country");
+  const savedCity      = localStorage.getItem("profile_city");
+
+  const rawDisplayName = savedFirstName
+    ? [savedFirstName, savedLastName].filter(Boolean).join(" ")
+    : username;
+  const displayName = titleCase(rawDisplayName);
   const recentShelves = shelves.all.slice(0, 2);
   const readCount = shelves.read.length;
   const challengeGoal = 15;
@@ -66,9 +75,17 @@ export default function Profile() {
         <section className="profile-header-panel">
           <div className="profile-avatar-container">
             <div className="profile-avatar-placeholder">
-              <svg viewBox="0 0 24 24">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-              </svg>
+              {savedPhoto ? (
+                <img
+                  src={savedPhoto}
+                  alt="Profile"
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                />
+              ) : (
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>
+              )}
             </div>
             <div className="profile-avatar-stats">
               <Link to="/my-reviews">{reviews.length} ratings ({averageRating} avg)</Link><br />
@@ -79,13 +96,13 @@ export default function Profile() {
 
           <div className="profile-info">
             <h1>{displayName}</h1>
-            <span>(<Link to="/profile">edit profile</Link>)</span>
+            <span>(<Link to="/account-settings">edit profile</Link>)</span>
             <button type="button" onClick={signOut}>Sign out</button>
             <table>
               <tbody>
                 <tr>
                   <td>Details</td>
-                  <td>India</td>
+                  <td>{[savedCity, savedCountry].filter(Boolean).join(", ") || "India"}</td>
                 </tr>
                 <tr>
                   <td>Activity</td>
@@ -174,7 +191,7 @@ export default function Profile() {
 
         <section className="profile-sidebar-box">
           <div className="profile-section-header">{displayName}&apos;s Friends</div>
-          <Link to="/community">Invite your friends »</Link>
+          <Link to="/friends">Invite your friends »</Link>
         </section>
 
         <section className="profile-sidebar-box">

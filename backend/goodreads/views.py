@@ -238,6 +238,10 @@ class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
             queryset = queryset.filter(Q(username__icontains=query) | Q(email__icontains=query))
         return queryset
 
+    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def me(self, request):
+        return Response(UserSerializer(request.user, context={"request": request}).data)
+
     @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
     def follow(self, request, pk=None):
         target = self.get_object()
