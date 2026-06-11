@@ -9,18 +9,22 @@ export function AuthProvider({ children }) {
   const value = useMemo(
     () => ({
       isAuthenticated: Boolean(token),
+      username: localStorage.getItem("username") || "",
       async login(username, password) {
         await loginRequest(username, password);
+        localStorage.setItem("username", username);
         setToken(localStorage.getItem("accessToken"));
       },
       async register(values) {
         await registerRequest(values);
         await loginRequest(values.username, values.password);
+        localStorage.setItem("username", values.username);
         setToken(localStorage.getItem("accessToken"));
       },
       logout() {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
+        localStorage.removeItem("username");
         setToken(null);
       },
     }),

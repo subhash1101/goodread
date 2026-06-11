@@ -219,39 +219,6 @@ export default function MyBooks() {
         </main>
       </div>
 
-      <footer className="mybooks-footer">
-        <div>
-          <section>
-            <h2>Company</h2>
-            <Link to="/community">About us</Link>
-            <Link to="/community">Careers</Link>
-            <Link to="/login">Terms</Link>
-            <Link to="/login">Privacy</Link>
-            <Link to="/login">Help</Link>
-          </section>
-          <section>
-            <h2>Work With Us</h2>
-            <Link to="/community">Authors</Link>
-            <Link to="/browse">Advertise</Link>
-            <Link to="/browse">Authors & ads blog</Link>
-          </section>
-          <section>
-            <h2>Connect</h2>
-            <div className="mybooks-socials">
-              <span>f</span><span>t</span><span>ig</span><span>in</span>
-            </div>
-          </section>
-          <section>
-            <div className="mybooks-store-row">
-              <span>Download on the<br />App Store</span>
-              <span>Get it on<br />Google Play</span>
-            </div>
-            <p>Mobile version</p>
-            <p>© 2026 Goodreads LLC</p>
-            <p>an amazon company</p>
-          </section>
-        </div>
-      </footer>
     </>
   );
 }

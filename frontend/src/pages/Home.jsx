@@ -231,33 +231,6 @@ export default function Home() {
         </aside>
       </div>
 
-      <footer className="gr-footer">
-        <div>
-          <section>
-            <h2>Company</h2>
-            <Link to="/community">About us</Link>
-            <Link to="/browse">Careers</Link>
-            <Link to="/login">Terms</Link>
-            <Link to="/login">Privacy</Link>
-          </section>
-          <section>
-            <h2>Work With Us</h2>
-            <Link to="/community">Authors</Link>
-            <Link to="/browse">Advertise</Link>
-            <Link to="/browse">Authors & ads blog</Link>
-          </section>
-          <section>
-            <h2>Connect</h2>
-            <p>Social links</p>
-          </section>
-          <section>
-            <h2>Download App</h2>
-            <span>App Store</span>
-            <span>Google Play</span>
-          </section>
-        </div>
-        <p>© 2026 Goodreads LLC, an amazon company</p>
-      </footer>
     </>
   );
 }
