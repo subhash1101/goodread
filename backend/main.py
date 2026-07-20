@@ -1154,3 +1154,14 @@ def send_message(
         "SELECT * FROM direct_messages WHERE id = ?", (cursor.lastrowid,)
     ).fetchone()
     return _serialize_message(row, user["id"])
+
+
+# ---------------------------------------------------------------------------
+# Groups & Community module
+# Imported at the bottom so all shared utilities above are fully defined
+# before groups.py does `from main import ...`.
+# ---------------------------------------------------------------------------
+import sys as _sys; _sys.path.insert(0, str(Path(__file__).resolve().parent))
+from groups import groups_router  # noqa: E402
+
+app.include_router(groups_router, prefix="/api")

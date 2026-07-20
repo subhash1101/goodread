@@ -7,7 +7,9 @@ import AddFriends from "./pages/AddFriends.jsx";
 import BookDetails from "./pages/BookDetails.jsx";
 import Browse from "./pages/Browse.jsx";
 import Community from "./pages/Community.jsx";
+import DiscussionDetail from "./pages/DiscussionDetail.jsx";
 import Discussions from "./pages/Discussions.jsx";
+import GroupDetail from "./pages/GroupDetail.jsx";
 import Friends from "./pages/Friends.jsx";
 import Home from "./pages/Home.jsx";
 import Landing from "./pages/Landing.jsx";
@@ -44,6 +46,8 @@ export default function App() {
           <Route path="/my-reviews" element={<Protected><MyReviews /></Protected>} />
           <Route path="/profile" element={<Protected><Profile /></Protected>} />
           <Route path="/community" element={<Community />} />
+          <Route path="/community/groups/:groupId" element={<GroupDetail />} />
+          <Route path="/community/groups/:groupId/discussions/:discussionId" element={<DiscussionDetail />} />
           <Route path="/notifications" element={<Protected><Notifications /></Protected>} />
           <Route path="/friends" element={<Protected><Friends /></Protected>} />
           <Route path="/add-friends" element={<Protected><AddFriends /></Protected>} />
